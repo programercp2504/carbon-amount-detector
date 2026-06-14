@@ -1,0 +1,26 @@
+{
+  "name": "carbon-footprint-tracker",
+  "version": "1.0.0",
+  "description": "An ultra-efficient, secure, and beautiful carbon footprint tracker web application.",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/calculator.test.js tests/validator.test.js"
+  },
+  "keywords": [
+    "carbon",
+    "footprint",
+    "tracker",
+    "climate",
+    "sustainability",
+    "cloudrun"
+  ],
+  "author": "Antigravity Code Assistant",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "helmet": "^7.1.0"
+  }
+}
