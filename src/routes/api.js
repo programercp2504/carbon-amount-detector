@@ -1,11 +1,23 @@
+/**
+ * API route handlers for the Carbon Footprint Tracker.
+ *
+ * Endpoints:
+ *   POST /api/calculate  – Calculate a carbon footprint from user inputs.
+ *   GET  /api/actions    – Retrieve carbon reduction recommendations.
+ *   GET  /api/health     – Health-check / readiness probe.
+ *
+ * @module api
+ */
+
 import { Router } from 'express';
 import { validateFootprintInput } from '../utils/validator.js';
 import { calculateTotal } from '../utils/calculator.js';
 
 const router = Router();
 
-// In-memory or static list of recommended actions to reduce carbon footprint
-const CARBON_REDUCTION_ACTIONS = [
+// ── Carbon Reduction Action Catalogue ────────────────────────────────────────
+
+const CARBON_REDUCTION_ACTIONS = Object.freeze([
   {
     id: 'green_energy',
     title: 'Switch to Green Energy',
@@ -18,7 +30,7 @@ const CARBON_REDUCTION_ACTIONS = [
   {
     id: 'smart_thermostat',
     title: 'Install a Smart Thermostat',
-    description: 'Optimize heating and cooling schedules, and lower your thermostat by 1-2°C.',
+    description: 'Optimize heating and cooling schedules, and lower your thermostat by 1–2 °C.',
     category: 'energy',
     difficulty: 'Medium',
     annualSavingsKg: 350,
@@ -45,7 +57,7 @@ const CARBON_REDUCTION_ACTIONS = [
   {
     id: 'active_travel',
     title: 'Cycle or Walk Short Distances',
-    description: 'For trips under 3km, walk or cycle instead of driving your car.',
+    description: 'For trips under 3 km, walk or cycle instead of driving.',
     category: 'transport',
     difficulty: 'Easy',
     annualSavingsKg: 250,
@@ -99,50 +111,77 @@ const CARBON_REDUCTION_ACTIONS = [
   {
     id: 'mindful_shopping',
     title: 'Adopt Mindful Shopping Habits',
-    description: 'Avoid fast fashion, buy second-hand, and repair items instead of buying new.',
+    description: 'Avoid fast fashion, buy second-hand, and repair items instead of replacing them.',
     category: 'waste',
     difficulty: 'Medium',
     annualSavingsKg: 600,
     impactLevel: 'High'
   }
-];
+]);
+
+// ── Route Handlers ────────────────────────────────────────────────────────────
 
 /**
  * POST /api/calculate
- * Calculates carbon footprint based on validated input body.
+ * Validates the request body and returns a carbon footprint breakdown.
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
-router.post('/calculate', (req, res) => {
-  const validationResult = validateFootprintInput(req.body);
+router.post('/calculate', (req, res, next) => {
+  try {
+    const validationResult = validateFootprintInput(req.body);
 
-  if (!validationResult.isValid) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid footprint input parameters',
-      errors: validationResult.errors
-    });
-  }
-
-  const result = calculateTotal(validationResult.data);
-
-  return res.json({
-    success: true,
-    data: {
-      inputs: validationResult.data,
-      breakdown: result.breakdown,
-      total: result.total
+    if (!validationResult.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid footprint input parameters.',
+        errors: validationResult.errors
+      });
     }
-  });
+
+    const result = calculateTotal(validationResult.data);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        inputs:    validationResult.data,
+        breakdown: result.breakdown,
+        total:     result.total
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * GET /api/actions
- * Returns the list of standard carbon reduction actions.
+ * Returns the full list of carbon reduction recommendations.
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
  */
 router.get('/actions', (req, res) => {
-  return res.json({
-    success: true,
-    data: CARBON_REDUCTION_ACTIONS
-  });
+  // Optional category filter: GET /api/actions?category=transport
+  const { category } = req.query;
+  const data = category
+    ? CARBON_REDUCTION_ACTIONS.filter((a) => a.category === String(category))
+    : CARBON_REDUCTION_ACTIONS;
+
+  return res.status(200).json({ success: true, data });
+});
+
+/**
+ * GET /api/health
+ * Lightweight health-check endpoint for container orchestration probes.
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
+ */
+router.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 export default router;

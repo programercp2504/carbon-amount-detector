@@ -71,7 +71,6 @@ export function calculateDiet(dietType = 'average') {
  * Calculates the annual carbon footprint for Waste and Consumption in kg CO2e.
  */
 export function calculateWasteAndConsumption(wasteGenerated = 0, recyclingRate = 0, shoppingHabits = 'average') {
-  // Annualize waste (12 months) and apply recycling rate reduction (up to 80% maximum waste reduction)
   const effectiveRecycling = Math.min(Math.max(recyclingRate, 0), 80) / 100;
   const netWaste = wasteGenerated * (1 - effectiveRecycling);
   const annualWaste = netWaste * EMISSION_FACTORS.wastePerKg * 12;
@@ -112,12 +111,7 @@ export function calculateTotal(data = {}) {
   const total = Math.round((energy + transport + diet + waste) * 100) / 100;
 
   return {
-    breakdown: {
-      energy,
-      transport,
-      diet,
-      waste
-    },
+    breakdown: { energy, transport, diet, waste },
     total
   };
 }

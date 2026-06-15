@@ -1,6 +1,13 @@
+/**
+ * Unit tests for src/utils/calculator.js
+ *
+ * Run with: node --test tests/calculator.test.js
+ */
+
 import test from 'node:test';
-import assert from 'node:assert';
+import assert from 'node:assert/strict';
 import {
+  EMISSION_FACTORS,
   calculateHomeEnergy,
   calculateTransport,
   calculateDiet,
@@ -8,90 +15,242 @@ import {
   calculateTotal
 } from '../src/utils/calculator.js';
 
-test('Carbon Footprint Calculator - Home Energy Calculations', () => {
-  // Electricity: 100 kWh/mo * 0.385 kg/kWh * 12 mo = 462
-  // Gas: 200 kWh/mo * 0.185 kg/kWh * 12 mo = 444
-  // Heating Oil: 50 L/mo * 2.68 kg/L * 12 mo = 1608
-  // Total = 462 + 444 + 1608 = 2514
-  const energy = calculateHomeEnergy(100, false, 200, 50);
-  assert.strictEqual(energy, 2514);
+// ── EMISSION_FACTORS ──────────────────────────────────────────────────────────
 
-  // Green electricity discount
-  // Electricity: 100 kWh/mo * 0.038 kg/kWh * 12 mo = 45.6
-  // Gas: 0, Oil: 0
-  // Total = 45.6
-  const greenEnergy = calculateHomeEnergy(100, true, 0, 0);
-  assert.strictEqual(greenEnergy, 45.6);
-
-  // Zero values
-  assert.strictEqual(calculateHomeEnergy(0, false, 0, 0), 0);
+test('EMISSION_FACTORS - all required keys are present', () => {
+  assert.ok(EMISSION_FACTORS.electricity,     'electricity factor missing');
+  assert.ok(EMISSION_FACTORS.electricityGreen,'electricityGreen factor missing');
+  assert.ok(EMISSION_FACTORS.gas,             'gas factor missing');
+  assert.ok(EMISSION_FACTORS.heatingOil,      'heatingOil factor missing');
+  assert.ok(EMISSION_FACTORS.car,             'car factors missing');
+  assert.ok(EMISSION_FACTORS.diet,            'diet factors missing');
+  assert.ok(EMISSION_FACTORS.shopping,        'shopping factors missing');
 });
 
-test('Carbon Footprint Calculator - Transport Calculations', () => {
-  // Car: 10000 km * 0.17 kg/km (petrol) = 1700
-  // Transit: 10 hours/wk * 52 wk * 1.2 kg/hr = 624
-  // Flights: 10 hours * 90 kg/hr = 900
-  // Total = 1700 + 624 + 900 = 3224
-  const transport = calculateTransport(10000, 'petrol', 10, 10);
-  assert.strictEqual(transport, 3224);
-
-  // Electric vehicle
-  // Car: 10000 km * 0.05 kg/km (electric) = 500
-  const evTransport = calculateTransport(10000, 'electric', 0, 0);
-  assert.strictEqual(evTransport, 500);
-
-  // Zero values
-  assert.strictEqual(calculateTransport(0, 'petrol', 0, 0), 0);
+test('EMISSION_FACTORS - green electricity is significantly lower than standard', () => {
+  assert.ok(
+    EMISSION_FACTORS.electricityGreen < EMISSION_FACTORS.electricity * 0.5,
+    'Green electricity should be at least 50% lower than standard'
+  );
 });
 
-test('Carbon Footprint Calculator - Diet Calculations', () => {
-  assert.strictEqual(calculateDiet('vegan'), 700);
-  assert.strictEqual(calculateDiet('vegetarian'), 1100);
-  assert.strictEqual(calculateDiet('average'), 1700);
-  assert.strictEqual(calculateDiet('meat-heavy'), 2500);
-  assert.strictEqual(calculateDiet('unknown-type'), 1700); // defaults to average
+// ── calculateHomeEnergy ───────────────────────────────────────────────────────
+
+test('calculateHomeEnergy - combined usage (electricity + gas + oil)', () => {
+  // 100 kWh/mo * 0.385 * 12 = 462
+  // 200 kWh/mo * 0.185 * 12 = 444
+  //  50 L/mo   * 2.68  * 12 = 1608
+  // Total = 2514
+  assert.equal(calculateHomeEnergy(100, false, 200, 50), 2514);
 });
 
-test('Carbon Footprint Calculator - Waste & Consumption Calculations', () => {
-  // Waste: 50 kg/mo * 12 mo * 0.5 kg/kg * (1 - 0.5 recycling) = 150
+test('calculateHomeEnergy - green tariff reduces electricity footprint', () => {
+  // 100 kWh/mo * 0.038 * 12 = 45.6
+  assert.equal(calculateHomeEnergy(100, true, 0, 0), 45.6);
+});
+
+test('calculateHomeEnergy - all zeros returns 0', () => {
+  assert.equal(calculateHomeEnergy(0, false, 0, 0), 0);
+});
+
+test('calculateHomeEnergy - default parameters return 0', () => {
+  assert.equal(calculateHomeEnergy(), 0);
+});
+
+test('calculateHomeEnergy - electricity only (no gas, no oil)', () => {
+  // 250 kWh/mo * 0.385 * 12 = 1155
+  assert.equal(calculateHomeEnergy(250, false, 0, 0), 1155);
+});
+
+test('calculateHomeEnergy - gas only', () => {
+  // 300 kWh/mo * 0.185 * 12 = 666
+  assert.equal(calculateHomeEnergy(0, false, 300, 0), 666);
+});
+
+test('calculateHomeEnergy - result is rounded to 2 decimal places', () => {
+  const result = calculateHomeEnergy(1, false, 1, 1);
+  assert.equal(result, Math.round(result * 100) / 100);
+});
+
+// ── calculateTransport ────────────────────────────────────────────────────────
+
+test('calculateTransport - petrol car + transit + flights', () => {
+  // 10000 km * 0.17 = 1700
+  // 10 h/wk * 52 wk * 1.2 = 624
+  // 10 h    * 90    = 900
+  // Total = 3224
+  assert.equal(calculateTransport(10000, 'petrol', 10, 10), 3224);
+});
+
+test('calculateTransport - electric vehicle lower than petrol', () => {
+  const ev     = calculateTransport(10000, 'electric', 0, 0);
+  const petrol = calculateTransport(10000, 'petrol',   0, 0);
+  assert.ok(ev < petrol, 'EV footprint should be lower than petrol');
+  assert.equal(ev, 500);
+});
+
+test('calculateTransport - diesel car', () => {
+  // 10000 km * 0.16 = 1600
+  assert.equal(calculateTransport(10000, 'diesel', 0, 0), 1600);
+});
+
+test('calculateTransport - hybrid car', () => {
+  // 10000 km * 0.11 = 1100
+  assert.equal(calculateTransport(10000, 'hybrid', 0, 0), 1100);
+});
+
+test('calculateTransport - unknown fuel type falls back to petrol', () => {
+  const unknown = calculateTransport(10000, 'hydrogen', 0, 0);
+  const petrol  = calculateTransport(10000, 'petrol',   0, 0);
+  assert.equal(unknown, petrol);
+});
+
+test('calculateTransport - all zeros returns 0', () => {
+  assert.equal(calculateTransport(0, 'petrol', 0, 0), 0);
+});
+
+test('calculateTransport - default parameters return 0', () => {
+  assert.equal(calculateTransport(), 0);
+});
+
+test('calculateTransport - transit only (no car, no flights)', () => {
+  // 5 h/wk * 52 * 1.2 = 312
+  assert.equal(calculateTransport(0, 'petrol', 5, 0), 312);
+});
+
+// ── calculateDiet ─────────────────────────────────────────────────────────────
+
+test('calculateDiet - vegan is lowest footprint', () => {
+  assert.equal(calculateDiet('vegan'), 700);
+});
+
+test('calculateDiet - vegetarian', () => {
+  assert.equal(calculateDiet('vegetarian'), 1100);
+});
+
+test('calculateDiet - average', () => {
+  assert.equal(calculateDiet('average'), 1700);
+});
+
+test('calculateDiet - meat-heavy is highest footprint', () => {
+  assert.equal(calculateDiet('meat-heavy'), 2500);
+});
+
+test('calculateDiet - unknown type defaults to average', () => {
+  assert.equal(calculateDiet('unknown-type'), 1700);
+  assert.equal(calculateDiet(),               1700);
+  assert.equal(calculateDiet(null),           1700);
+});
+
+test('calculateDiet - footprint ordering is correct', () => {
+  assert.ok(calculateDiet('vegan')        < calculateDiet('vegetarian'));
+  assert.ok(calculateDiet('vegetarian')   < calculateDiet('average'));
+  assert.ok(calculateDiet('average')      < calculateDiet('meat-heavy'));
+});
+
+// ── calculateWasteAndConsumption ──────────────────────────────────────────────
+
+test('calculateWasteAndConsumption - waste + average shopping', () => {
+  // Waste: 50 kg/mo * 12 * 0.5 * (1 - 0.5) = 150
   // Shopping: average = 400
-  // Total = 150 + 400 = 550
-  const waste = calculateWasteAndConsumption(50, 50, 'average');
-  assert.strictEqual(waste, 550);
-
-  // Zero waste, heavy shopping
-  const heavyShopping = calculateWasteAndConsumption(0, 0, 'heavy');
-  assert.strictEqual(heavyShopping, 1000);
+  // Total = 550
+  assert.equal(calculateWasteAndConsumption(50, 50, 'average'), 550);
 });
 
-test('Carbon Footprint Calculator - Total Breakdown Calculation', () => {
+test('calculateWasteAndConsumption - no waste, heavy shopping', () => {
+  assert.equal(calculateWasteAndConsumption(0, 0, 'heavy'), 1000);
+});
+
+test('calculateWasteAndConsumption - no waste, minimal shopping', () => {
+  assert.equal(calculateWasteAndConsumption(0, 0, 'minimal'), 100);
+});
+
+test('calculateWasteAndConsumption - recycling rate capped at 80%', () => {
+  const at80  = calculateWasteAndConsumption(100, 80,  'minimal');
+  const at100 = calculateWasteAndConsumption(100, 100, 'minimal');
+  assert.equal(at80, at100, '100% recycling should equal 80% (cap applied)');
+});
+
+test('calculateWasteAndConsumption - zero recycling keeps all waste', () => {
+  const withRecycling    = calculateWasteAndConsumption(100, 50, 'minimal');
+  const withoutRecycling = calculateWasteAndConsumption(100, 0,  'minimal');
+  assert.ok(withRecycling < withoutRecycling, 'Recycling should reduce waste footprint');
+});
+
+test('calculateWasteAndConsumption - default parameters return minimal shopping only', () => {
+  // wasteGenerated = 0, recyclingRate = 0, shoppingHabits = 'average' → 400
+  assert.equal(calculateWasteAndConsumption(), 400);
+});
+
+// ── calculateTotal ────────────────────────────────────────────────────────────
+
+test('calculateTotal - returns correct breakdown and total', () => {
   const inputData = {
-    electricity: 100,
+    electricity:      100,
     electricityGreen: false,
-    gas: 0,
-    heatingOil: 0,
-    carDistance: 10000,
-    carFuel: 'petrol',
-    transitHours: 0,
-    flightHours: 0,
-    dietType: 'vegan',
-    wasteGenerated: 0,
-    recyclingRate: 0,
-    shoppingHabits: 'minimal'
+    gas:              0,
+    heatingOil:       0,
+    carDistance:      10000,
+    carFuel:          'petrol',
+    transitHours:     0,
+    flightHours:      0,
+    dietType:         'vegan',
+    wasteGenerated:   0,
+    recyclingRate:    0,
+    shoppingHabits:   'minimal'
   };
 
-  // Energy: 100 * 0.385 * 12 = 462
-  // Transport: 10000 * 0.17 = 1700
-  // Diet: vegan = 700
-  // Waste/Shopping: minimal = 100
-  // Total = 462 + 1700 + 700 + 100 = 2962
+  // energy    = 100 * 0.385 * 12 = 462
+  // transport = 10000 * 0.17     = 1700
+  // diet      = 700
+  // waste     = 100
+  // total     = 2962
   const result = calculateTotal(inputData);
-  
-  assert.strictEqual(result.total, 2962);
-  assert.deepStrictEqual(result.breakdown, {
-    energy: 462,
+
+  assert.equal(result.total, 2962);
+  assert.deepEqual(result.breakdown, {
+    energy:    462,
     transport: 1700,
-    diet: 700,
-    waste: 100
+    diet:      700,
+    waste:     100
   });
+});
+
+test('calculateTotal - all zeros returns diet baseline only', () => {
+  const result = calculateTotal({
+    electricity: 0, gas: 0, heatingOil: 0, electricityGreen: false,
+    carDistance: 0, carFuel: 'petrol', transitHours: 0, flightHours: 0,
+    dietType: 'average',
+    wasteGenerated: 0, recyclingRate: 0, shoppingHabits: 'average'
+  });
+  // Diet average = 1700, shopping average = 400
+  assert.equal(result.breakdown.energy,    0);
+  assert.equal(result.breakdown.transport, 0);
+  assert.equal(result.breakdown.diet,   1700);
+  assert.equal(result.breakdown.waste,   400);
+  assert.equal(result.total, 2100);
+});
+
+test('calculateTotal - empty object uses all defaults', () => {
+  const result = calculateTotal({});
+  assert.ok(typeof result.total === 'number',     'total should be a number');
+  assert.ok(typeof result.breakdown === 'object', 'breakdown should be an object');
+  assert.ok(result.total >= 0,                   'total should be non-negative');
+});
+
+test('calculateTotal - total equals sum of breakdown values', () => {
+  const result = calculateTotal({
+    electricity: 200, gas: 100, carDistance: 8000, dietType: 'vegetarian'
+  });
+  const breakdownSum = Math.round(
+    (result.breakdown.energy + result.breakdown.transport +
+     result.breakdown.diet   + result.breakdown.waste) * 100
+  ) / 100;
+  assert.equal(result.total, breakdownSum);
+});
+
+test('calculateTotal - green electricity produces lower energy footprint', () => {
+  const standard = calculateTotal({ electricity: 200, electricityGreen: false });
+  const green    = calculateTotal({ electricity: 200, electricityGreen: true  });
+  assert.ok(green.total < standard.total, 'Green electricity should lower total footprint');
 });

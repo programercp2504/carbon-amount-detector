@@ -5,7 +5,21 @@
  * - errors: an object mapping field names to error messages
  * - data: sanitized data (converted to correct types, default values applied)
  */
+
+export const VALID_FUEL_TYPES = ['petrol', 'diesel', 'hybrid', 'electric'];
+export const VALID_DIET_TYPES = ['meat-heavy', 'average', 'vegetarian', 'vegan'];
+export const VALID_SHOPPING_HABITS = ['heavy', 'average', 'minimal'];
+
 export function validateFootprintInput(input = {}) {
+  // Guard: reject non-object payloads
+  if (typeof input !== 'object' || Array.isArray(input) || input === null) {
+    return {
+      isValid: false,
+      errors: { _body: 'Request body must be a JSON object' },
+      data: {}
+    };
+  }
+
   const errors = {};
   const sanitized = {};
 
@@ -28,38 +42,39 @@ export function validateFootprintInput(input = {}) {
   };
 
   // 1. Home Energy Validation
-  validateNumeric('electricity', input.electricity, 50000, 0); // max 50,000 kWh/month
-  validateNumeric('gas', input.gas, 50000, 0); // max 50,000 kWh/month
-  validateNumeric('heatingOil', input.heatingOil, 10000, 0); // max 10,000 liters/month
-  sanitized.electricityGreen = Boolean(input.electricityGreen);
+  validateNumeric('electricity', input.electricity, 50000, 0);
+  validateNumeric('gas', input.gas, 50000, 0);
+  validateNumeric('heatingOil', input.heatingOil, 10000, 0);
+
+  // Coerce electricityGreen properly (handles "true"/"false" strings from forms)
+  sanitized.electricityGreen = input.electricityGreen === true
+    || input.electricityGreen === 'true'
+    || input.electricityGreen === 1;
 
   // 2. Transport Validation
-  validateNumeric('carDistance', input.carDistance, 500000, 0); // max 500,000 km/year
-  
-  const validFuelTypes = ['petrol', 'diesel', 'hybrid', 'electric'];
+  validateNumeric('carDistance', input.carDistance, 500000, 0);
+
   const fuel = input.carFuel || 'petrol';
-  if (validFuelTypes.includes(fuel)) {
+  if (VALID_FUEL_TYPES.includes(fuel)) {
     sanitized.carFuel = fuel;
   } else {
     errors.carFuel = 'Invalid fuel type selected';
   }
 
-  validateNumeric('transitHours', input.transitHours, 168, 0); // max 168 hours/week
-  validateNumeric('flightHours', input.flightHours, 1000, 0);  // max 1,000 flight hours/year
+  validateNumeric('transitHours', input.transitHours, 168, 0);
+  validateNumeric('flightHours', input.flightHours, 1000, 0);
 
   // 3. Diet Validation
-  const validDietTypes = ['meat-heavy', 'average', 'vegetarian', 'vegan'];
   const diet = input.dietType || 'average';
-  if (validDietTypes.includes(diet)) {
+  if (VALID_DIET_TYPES.includes(diet)) {
     sanitized.dietType = diet;
   } else {
     errors.dietType = 'Invalid diet type selected';
   }
 
   // 4. Waste & Consumption Validation
-  validateNumeric('wasteGenerated', input.wasteGenerated, 2000, 0); // max 2,000 kg/month
-  
-  // recycling rate should be between 0 and 100
+  validateNumeric('wasteGenerated', input.wasteGenerated, 2000, 0);
+
   const recycling = Number(input.recyclingRate === undefined || input.recyclingRate === '' ? 0 : input.recyclingRate);
   if (isNaN(recycling)) {
     errors.recyclingRate = 'Recycling rate must be a number';
@@ -69,9 +84,8 @@ export function validateFootprintInput(input = {}) {
     sanitized.recyclingRate = recycling;
   }
 
-  const validShoppingHabits = ['heavy', 'average', 'minimal'];
   const shopping = input.shoppingHabits || 'average';
-  if (validShoppingHabits.includes(shopping)) {
+  if (VALID_SHOPPING_HABITS.includes(shopping)) {
     sanitized.shoppingHabits = shopping;
   } else {
     errors.shoppingHabits = 'Invalid shopping habit selection';
