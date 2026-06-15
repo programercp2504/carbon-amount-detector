@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoFootprint - Carbon Footprint Tracker</title>
+  <meta name="description" content="Understand, track, and reduce your carbon footprint with personalized insights and daily action logging.">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Background decorations -->
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <svg class="brand-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.467 5.99 5.99 0 0 0-1.925 3.546 5.974 5.974 0 0 1-2.133-1A3.75 3.75 0 0 0 12 18Z" />
+        </svg>
+        <span>EcoFootprint</span>
+      </div>
+      
+      <nav class="nav-links">
+        <button class="nav-btn active" id="tab-btn-dashboard" data-tab="dashboard">
+          <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+          </svg>
+          Dashboard
+        </button>
+        <button class="nav-btn" id="tab-btn-calculator" data-tab="calculator">
+          <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          Footprint Calculator
+        </button>
+        <button class="nav-btn" id="tab-btn-actions" data-tab="actions">
+          <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          Action Tracker
+        </button>
+        <button class="nav-btn" id="tab-btn-insights" data-tab="insights">
+          <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          Insights & Tips
+        </button>
+        <button class="nav-btn" id="tab-btn-data" data-tab="data">
+          <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+          </svg>
+          Data & Settings
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>Your footprint is personal.</p>
+        <p class="sub-footer">All data stays on your device.</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Bar / Summary header -->
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">Personal Dashboard</h1>
+          <p class="text-muted" id="page-subtitle">Track your carbon journey and log green actions.</p>
+        </div>
+        <div class="quick-status">
+          <div class="status-metric">
+            <span class="metric-label">Your Annual Footprint</span>
+            <span class="metric-val" id="header-footprint-val">0 kg</span>
+            <span class="metric-desc">CO2e / year</span>
+          </div>
+          <div class="status-metric">
+            <span class="metric-label">Saved This Month</span>
+            <span class="metric-val text-green" id="header-saved-val">0 kg</span>
+            <span class="metric-desc">CO2e saved</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-pane active">
+        <div class="grid-layout">
+          
+          <!-- Large Card: Main breakdown -->
+          <div class="card col-2">
+            <h2>Annual Carbon Breakdown</h2>
+            <p class="text-muted">A category-wise breakdown of your estimated greenhouse gas contributions.</p>
+            
+            <div class="dashboard-chart-section">
+              <!-- SVG Donut Chart Container -->
+              <div class="chart-container">
+                <svg id="donut-chart" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#1f242d" stroke-width="12"></circle>
+                  <!-- Dynamically populated circles go here -->
+                </svg>
+                <div class="chart-center-text">
+                  <span id="chart-total-val">0</span>
+                  <span class="chart-unit">kg/yr</span>
+                </div>
+              </div>
+              
+              <!-- Custom Legend -->
+              <div class="chart-legend" id="chart-legend">
+                <!-- Dynamically Populated -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Small Card: Quick Insights / Goals -->
+          <div class="card">
+            <h2>Monthly Action Goal</h2>
+            <p class="text-muted">Stay active to reach your sustainability targets.</p>
+            
+            <div class="goal-progress-section">
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="goal-progress-fill"></div>
+              </div>
+              <div class="goal-stats">
+                <span>Progress: <strong id="goal-saved-val">0 kg</strong> saved</span>
+                <span>Target: <strong id="goal-target-val">100 kg</strong></span>
+              </div>
+            </div>
+            
+            <div class="quick-tip-box" id="dashboard-quick-tip">
+              <strong>Tip of the Day:</strong> Let's calculate your carbon footprint first to get personalized insights!
+            </div>
+          </div>
+
+          <!-- Mid Card: Logged Actions -->
+          <div class="card col-2">
+            <div class="card-header-flex">
+              <h2>Action Log History</h2>
+              <button class="btn btn-sm btn-outline" id="clear-logs-btn">Clear Log</button>
+            </div>
+            <p class="text-muted">Actions you checked off and the corresponding carbon savings.</p>
+            
+            <div class="action-log-wrapper">
+              <table class="action-log-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Action</th>
+                    <th>Category</th>
+                    <th>Savings (kg CO2e)</th>
+                  </tr>
+                </thead>
+                <tbody id="action-log-body">
+                  <tr>
+                    <td colspan="4" class="text-center text-muted">No actions logged yet. Go to the Action Tracker to log daily actions!</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Small Card: Global Compare -->
+          <div class="card">
+            <h2>How You Compare</h2>
+            <p class="text-muted">Compare your emissions against global averages.</p>
+            
+            <div class="compare-bars">
+              <div class="compare-bar-item">
+                <div class="compare-labels">
+                  <span>Your Footprint</span>
+                  <span id="compare-user-val">0 kg</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill user" id="compare-user-fill"></div>
+                </div>
+              </div>
+              <div class="compare-bar-item">
+                <div class="compare-labels">
+                  <span>Target (Paris Accord)</span>
+                  <span>2,000 kg</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill target compare-target-fill"></div>
+                </div>
+              </div>
+              <div class="compare-bar-item">
+                <div class="compare-labels">
+                  <span>World Average</span>
+                  <span>4,800 kg</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill world compare-world-fill"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wide Card: Historical Footprint Trend -->
+          <div class="card col-3">
+            <h2>Your Carbon Trend</h2>
+            <p class="text-muted">Tracking your emissions progression across historical calculator runs.</p>
+            <div class="trend-chart-container">
+              <svg id="trend-chart" class="trend-chart-svg" viewBox="0 0 500 200" aria-label="Line chart showing historical carbon footprint trends">
+                <!-- Grid lines and markers -->
+                <g class="grid-lines" id="trend-grid-lines"></g>
+                <!-- Area path for glow -->
+                <path id="trend-area-path" fill="url(#trend-glow-grad)" d=""></path>
+                <!-- Line path -->
+                <path id="trend-line-path" fill="none" stroke="#00e676" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d=""></path>
+                <!-- Interactive dots -->
+                <g id="trend-dots"></g>
+                <defs>
+                  <linearGradient id="trend-glow-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#00e676" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="#00e676" stop-opacity="0.0"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div id="trend-tooltip" class="trend-tooltip hidden"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: CALCULATOR -->
+      <section id="tab-calculator" class="tab-pane">
+        <form id="calculator-form" class="card">
+          <div class="form-steps-container">
+            
+            <!-- SECTION 1: Energy -->
+            <div class="form-section">
+              <div class="section-title-flex">
+                <div class="icon-circle energy-bg">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h2>1. Home Energy Consumption</h2>
+              </div>
+              <p class="section-desc text-muted">Your household electricity, gas, and heating fuels are primary emission sources.</p>
+              
+              <div class="form-grid">
+                <div class="form-group">
+                  <div class="form-label-flex">
+                    <label for="input-electricity">Electricity Usage</label>
+                    <span class="range-bubble" id="val-electricity">0 kWh/month</span>
+                  </div>
+                  <input type="range" id="input-electricity" name="electricity" min="0" max="2000" step="10" value="300" class="slider" aria-label="Electricity Usage in kilowatt hours per month" aria-valuemin="0" aria-valuemax="2000" aria-valuenow="300">
+                  <span class="help-text">Average household uses 250-400 kWh/month.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="form-label-flex">
+                    <label for="input-gas">Natural Gas Usage</label>
+                    <span class="range-bubble" id="val-gas">0 kWh/month</span>
+                  </div>
+                  <input type="range" id="input-gas" name="gas" min="0" max="3000" step="20" value="0" class="slider" aria-label="Natural Gas Usage in kilowatt hours per month" aria-valuemin="0" aria-valuemax="3000" aria-valuenow="0">
+                  <span class="help-text">Usually from heating or kitchen stoves.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="form-label-flex">
+                    <label for="input-heatingOil">Heating Oil / Diesel</label>
+                    <span class="range-bubble" id="val-heatingOil">0 Liters/month</span>
+                  </div>
+                  <input type="range" id="input-heatingOil" name="heatingOil" min="0" max="500" step="5" value="0" class="slider" aria-label="Heating Oil Usage in liters per month" aria-valuemin="0" aria-valuemax="500" aria-valuenow="0">
+                  <span class="help-text">For homes utilizing oil-based boilers.</span>
+                </div>
+
+                <div class="form-group checkbox-group">
+                  <label class="switch-container">
+                    <input type="checkbox" id="input-electricityGreen" name="electricityGreen">
+                    <span class="switch-slider"></span>
+                  </label>
+                  <div>
+                    <label for="input-electricityGreen" class="checkbox-label">Green Electricity Tariff</label>
+                    <span class="help-text">Check if your provider supplies energy from 100% renewable sources.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- SECTION 2: Transport -->
+            <div class="form-section">
+              <div class="section-title-flex">
+                <div class="icon-circle transport-bg">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </div>
+                <h2>2. Transportation & Travel</h2>
+              </div>
+              <p class="section-desc text-muted">Daily commutes and long-distance travel significantly influence carbon footprint sizes.</p>
+              
+              <div class="form-grid">
+                <div class="form-group">
+                  <div class="form-label-flex">
+                    <label for="input-carDistance">Car Distance Driven</label>
+                    <span class="range-bubble" id="val-carDistance">0 km/year</span>
+                  </div>
+                  <input type="range" id="input-carDistance" name="carDistance" min="0" max="50000" step="500" value="8000" class="slider" aria-label="Car Distance Driven in kilometers per year" aria-valuemin="0" aria-valuemax="50000" aria-valuenow="8000">
+                  <span class="help-text">Annual mileage of your primary vehicle.</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="input-carFuel">Primary Vehicle Fuel Type</label>
+                  <select id="input-carFuel" name="carFuel" aria-label="Primary Vehicle Fuel Type">
+                    <option value="petrol">Petrol (Gasoline)</option>
+                    <option value="diesel">Diesel</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="electric">Electric (EV)</option>
+                  </select>
+                  <span class="help-text">Determines the emission factor per kilometer.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="form-label-flex">
+                    <label for="input-transitHours">Public Transit Time</label>
+                    <span class="range-bubble" id="val-transitHours">0 hours/week</span>
+                  </div>
+                  <input type="range" id="input-transitHours" name="transitHours" min="0" max="40" step="1" value="2" class="slider" aria-label="Public Transit Travel Time in hours per week" aria-valuemin="0" aria-valuemax="40" aria-valuenow="2">
+                  <span class="help-text">Bus, train, tram, or light rail.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="form-label-flex">
+                    <label for="input-flightHours">Air Travel Time</label>
+                    <span class="range-bubble" id="val-flightHours">0 hours/year</span>
+                  </div>
+                  <input type="range" id="input-flightHours" name="flightHours" min="0" max="100" step="1" value="0" class="slider" aria-label="Air Travel Duration in hours per year" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                  <span class="help-text">Total flight duration per year (short & long-haul).</span>
+                </div>
+              </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- SECTION 3: Diet -->
+            <div class="form-section">
+              <div class="section-title-flex">
+                <div class="icon-circle diet-bg">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z" />
+                  </svg>
+                </div>
+                <h2>3. Dietary Habits</h2>
+              </div>
+              <p class="section-desc text-muted">Meat production, particularly beef and dairy, has a high greenhouse gas output.</p>
+              
+              <div class="form-grid">
+                <div class="form-group col-2">
+                  <label>Primary Diet Description</label>
+                  <div class="radio-card-grid">
+                    
+                    <label class="radio-card">
+                      <input type="radio" name="dietType" value="meat-heavy">
+                      <div class="radio-card-content">
+                        <strong>Meat Lover</strong>
+                        <span>Regular meat, including beef and lamb.</span>
+                      </div>
+                    </label>
+
+                    <label class="radio-card">
+                      <input type="radio" name="dietType" value="average" checked>
+                      <div class="radio-card-content">
+                        <strong>Average Diet</strong>
+                        <span>Some meat, chicken, fish, dairy.</span>
+                      </div>
+                    </label>
+
+                    <label class="radio-card">
+                      <input type="radio" name="dietType" value="vegetarian">
+                      <div class="radio-card-content">
+                        <strong>Vegetarian</strong>
+                        <span>No meat, includes dairy and eggs.</span>
+                      </div>
+                    </label>
+
+                    <label class="radio-card">
+                      <input type="radio" name="dietType" value="vegan">
+                      <div class="radio-card-content">
+                        <strong>Vegan</strong>
+                        <span>100% plant-based food habits.</span>
+                      </div>
+                    </label>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- SECTION 4: Waste & Consumption -->
+            <div class="form-section">
+              <div class="section-title-flex">
+                <div class="icon-circle waste-bg">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <h2>4. Waste & Consumption</h2>
+              </div>
+              <p class="section-desc text-muted">Buying goods and throwing garbage contributes to manufacturing and landfill gases.</p>
+              
+              <div class="form-grid">
+                <div class="form-group">
+                  <div class="form-label-flex">
+                    <label for="input-wasteGenerated">Waste Generated</label>
+                    <span class="range-bubble" id="val-wasteGenerated">0 kg/month</span>
+                  </div>
+                  <input type="range" id="input-wasteGenerated" name="wasteGenerated" min="0" max="200" step="5" value="40" class="slider" aria-label="Waste Generated in kilograms per month" aria-valuemin="0" aria-valuemax="200" aria-valuenow="40">
+                  <span class="help-text">Standard individual generates around 30-50 kg.</span>
+                </div>
+
+                <div class="form-group">
+                  <div class="form-label-flex">
+                    <label for="input-recyclingRate">Recycling Rate</label>
+                    <span class="range-bubble" id="val-recyclingRate">0 %</span>
+                  </div>
+                  <input type="range" id="input-recyclingRate" name="recyclingRate" min="0" max="100" step="5" value="30" class="slider" aria-label="Recycling Rate Percentage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="30">
+                  <span class="help-text">Percentage of materials recycled or composted.</span>
+                </div>
+
+                <div class="form-group col-2">
+                  <label>Shopping & Spending Habits</label>
+                  <div class="select-button-grid">
+                    <label class="select-btn-item">
+                      <input type="radio" name="shoppingHabits" value="minimal">
+                      <span>Frugal / Minimalist</span>
+                    </label>
+                    <label class="select-btn-item">
+                      <input type="radio" name="shoppingHabits" value="average" checked>
+                      <span>Average Consumer</span>
+                    </label>
+                    <label class="select-btn-item">
+                      <input type="radio" name="shoppingHabits" value="heavy">
+                      <span>Frequent Shopper</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form submission status & error alerts -->
+            <div id="calculator-errors" class="alert-box error hidden"></div>
+
+            <div class="form-footer">
+              <button type="submit" class="btn btn-primary btn-lg" id="calculate-btn">
+                Calculate Carbon Footprint
+                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </section>
+
+      <!-- TAB 3: ACTION PLAN -->
+      <section id="tab-actions" class="tab-pane">
+        <div class="actions-header card">
+          <h2>Daily Carbon Reduction Tracker</h2>
+          <p class="text-muted">Explore green actions. Log them today to record carbon savings, or track your commitments.</p>
+          <div class="actions-filter-grid">
+            <button class="filter-chip active" data-filter="all">All Categories</button>
+            <button class="filter-chip" data-filter="energy">Home Energy</button>
+            <button class="filter-chip" data-filter="transport">Transport</button>
+            <button class="filter-chip" data-filter="diet">Diet & Food</button>
+            <button class="filter-chip" data-filter="waste">Waste & Consumption</button>
+          </div>
+        </div>
+
+        <div class="actions-grid" id="actions-list-container">
+          <!-- Dynamically Populated Action Cards -->
+        </div>
+      </section>
+
+      <!-- TAB 4: INSIGHTS -->
+      <section id="tab-insights" class="tab-pane">
+        <div class="grid-layout">
+          
+          <!-- Top Card: Summary -->
+          <div class="card col-3">
+            <h2>Personalized Insights Report</h2>
+            <p class="text-muted">A deep-dive analysis of your footprint with constructive suggestions to reach carbon neutrality.</p>
+          </div>
+
+          <!-- Left Column: Category Analysis -->
+          <div class="card col-2" id="insights-category-details">
+            <!-- Dynamically populated analysis panels -->
+          </div>
+
+          <!-- Right Column: Priority Actions list -->
+          <div class="card" id="insights-priorities">
+            <h2>High-Impact Actions for You</h2>
+            <p class="text-muted">Tailored to target your highest emission categories.</p>
+            <div class="priority-list" id="insights-priorities-list">
+              <!-- Dynamically populated recommendations -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 5: DATA AND SETTINGS -->
+      <section id="tab-data" class="tab-pane">
+        <div class="grid-layout">
+          
+          <!-- Storage settings -->
+          <div class="card col-2">
+            <h2>Data Portability (GDPR / Privacy friendly)</h2>
+            <p class="text-muted">All calculations, tracking history, and logged actions are stored exclusively in your browser’s `localStorage`. No data is stored on our servers.</p>
+            
+            <div class="data-actions-flex">
+              <div class="data-action-card">
+                <h3>Export Data</h3>
+                <p class="text-muted">Backup your logs and inputs as a JSON file to transfer or save.</p>
+                <button class="btn btn-outline" id="export-data-btn">Export Data (JSON)</button>
+              </div>
+
+              <div class="data-action-card">
+                <h3>Import Data</h3>
+                <p class="text-muted">Load a previously exported JSON backup file. This will merge or overwrite current logs.</p>
+                <div class="file-input-wrapper">
+                  <label for="import-file" class="btn btn-primary">Choose Backup File</label>
+                  <input type="file" id="import-file" accept=".json" class="hidden-file-input">
+                  <span class="file-name-display" id="import-file-name">No file chosen</span>
+                </div>
+                <button class="btn btn-outline" id="import-data-btn" disabled>Upload and Restore</button>
+              </div>
+            </div>
+
+            <div id="data-center-alert" class="alert-box success hidden"></div>
+          </div>
+
+          <!-- Reset panel -->
+          <div class="card border-red">
+            <h2>Danger Zone</h2>
+            <p class="text-muted">Permanently wipe all carbon configurations, daily logs, and goals from this device. This action is irreversible.</p>
+            <div style="margin-top: 2rem;">
+              <button class="btn btn-danger" id="reset-app-btn">Reset All Application Data</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
