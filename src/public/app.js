@@ -27,6 +27,7 @@ let state = {
   total: 5210.8,
   actionLogs: [], // logged daily actions
   actionsList: [], // loaded from API
+  history: [], // calculated footprint history
   monthlyGoalSaved: 0,
   monthlyGoalTarget: 100 // target kg CO2e to save per month
 };
@@ -64,7 +65,8 @@ function saveToLocalStorage() {
     breakdown: state.breakdown,
     total: state.total,
     actionLogs: state.actionLogs,
-    monthlyGoalSaved: state.monthlyGoalSaved
+    monthlyGoalSaved: state.monthlyGoalSaved,
+    history: state.history
   }));
 }
 
@@ -78,6 +80,7 @@ function loadFromLocalStorage() {
       state.total = parsed.total || state.total;
       state.actionLogs = parsed.actionLogs || state.actionLogs;
       state.monthlyGoalSaved = parsed.monthlyGoalSaved || 0;
+      state.history = parsed.history || [];
     } catch (e) {
       console.error('Error parsing localStorage state:', e);
     }
@@ -137,6 +140,7 @@ function setupEventListeners() {
     if (sliderEl && labelEl) {
       sliderEl.addEventListener('input', () => {
         labelEl.textContent = Number(sliderEl.value).toLocaleString() + s.suffix;
+        sliderEl.setAttribute('aria-valuenow', sliderEl.value);
       });
     }
   });
@@ -232,6 +236,7 @@ function syncSlidersToLabels() {
     if (slider && label) {
       slider.value = state.inputs[slider.name] !== undefined ? state.inputs[slider.name] : slider.value;
       label.textContent = Number(slider.value).toLocaleString() + m.suffix;
+      slider.setAttribute('aria-valuenow', slider.value);
     }
   });
 }
@@ -297,6 +302,16 @@ async function handleCalculatorSubmit(e) {
       state.breakdown = result.data.breakdown;
       state.total = result.data.total;
       
+      // Append calculation instance to history trend tracker
+      if (!state.history) state.history = [];
+      state.history.push({
+        date: new Date().toISOString(),
+        total: result.data.total
+      });
+      if (state.history.length > 10) {
+        state.history.shift(); // limit history buffer sizes to protect localStorage
+      }
+
       saveToLocalStorage();
       updateUI();
       
@@ -343,6 +358,9 @@ function updateUI() {
 
   // Render SVG Donut Chart
   renderDonutChart();
+
+  // Render SVG Trend Chart
+  renderTrendChart();
 
   // Render Progress Goal
   const progressPercent = Math.min((state.monthlyGoalSaved / state.monthlyGoalTarget) * 100, 100);
@@ -709,9 +727,9 @@ function exportData() {
 }
 
 /**
- * Import and parse JSON file, merging settings into localStorage
+ * Import and parse JSON file, merging settings into localStorage after server-side validation
  */
-function importData() {
+async function importData() {
   const fileInput = document.getElementById('import-file');
   const alertBox = document.getElementById('data-center-alert');
 
@@ -720,7 +738,7 @@ function importData() {
   const file = fileInput.files[0];
   const reader = new FileReader();
 
-  reader.onload = function(event) {
+  reader.onload = async function(event) {
     try {
       const data = JSON.parse(event.target.result);
       
@@ -729,16 +747,48 @@ function importData() {
         throw new Error('Invalid backup file shape');
       }
 
-      // Merge and save parsed components
-      if (data.inputs) state.inputs = { ...state.inputs, ...data.inputs };
-      if (data.breakdown) state.breakdown = { ...state.breakdown, ...data.breakdown };
-      if (data.total !== undefined) state.total = Number(data.total);
-      if (data.actionLogs) state.actionLogs = Array.isArray(data.actionLogs) ? data.actionLogs : [];
-      if (data.monthlyGoalSaved !== undefined) state.monthlyGoalSaved = Number(data.monthlyGoalSaved);
+      if (!data.inputs) {
+        throw new Error('Backup file missing inputs configuration');
+      }
+
+      // Verify and validate imported inputs against server rules
+      const response = await fetch('/api/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data.inputs)
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error('Validation failed for imported parameters');
+      }
+
+      // Merge and save validated components
+      state.inputs = result.data.inputs;
+      state.breakdown = result.data.breakdown;
+      state.total = result.data.total;
+      
+      // Sanitize logged action items to prevent DOM XSS injection
+      state.actionLogs = Array.isArray(data.actionLogs) ? data.actionLogs.filter(log => {
+        return log && 
+               typeof log.id === 'string' &&
+               typeof log.title === 'string' &&
+               typeof log.category === 'string' &&
+               typeof log.savings === 'number' &&
+               typeof log.date === 'string';
+      }) : [];
+      
+      // Sanitize history trend data on import
+      state.history = Array.isArray(data.history) ? data.history.filter(h => {
+        return h && typeof h.date === 'string' && typeof h.total === 'number';
+      }) : [];
+      
+      state.monthlyGoalSaved = typeof data.monthlyGoalSaved === 'number' ? data.monthlyGoalSaved : 0;
 
       saveToLocalStorage();
       
-      alertBox.textContent = 'Data successfully restored! Reloading application...';
+      alertBox.textContent = 'Data successfully validated and restored! Reloading...';
       alertBox.classList.remove('hidden');
       alertBox.className = 'alert-box success';
 
@@ -747,8 +797,8 @@ function importData() {
       }, 1500);
 
     } catch (err) {
-      console.error('File parsing failed during import:', err);
-      alertBox.textContent = 'Import failed. Invalid or corrupted JSON backup file.';
+      console.error('File parsing/validation failed during import:', err);
+      alertBox.textContent = 'Import failed: ' + err.message;
       alertBox.classList.remove('hidden');
       alertBox.className = 'alert-box error';
     }
@@ -764,5 +814,156 @@ function resetApp() {
   if (confirm('Are you absolutely sure you want to delete all logs and configuration? This cannot be undone.')) {
     localStorage.removeItem('eco_state');
     window.location.reload();
+  }
+}
+
+/**
+ * Renders an SVG line chart plotting historical footprint progression.
+ * Standardizes dynamic SVG path coordinates for zero external package drawing.
+ */
+function renderTrendChart() {
+  const svg = document.getElementById('trend-chart');
+  const path = document.getElementById('trend-line-path');
+  const area = document.getElementById('trend-area-path');
+  const dotsContainer = document.getElementById('trend-dots');
+  const gridContainer = document.getElementById('trend-grid-lines');
+  
+  if (!svg || !path || !area) return;
+
+  // Clear older dynamic rendering
+  dotsContainer.innerHTML = '';
+  gridContainer.innerHTML = '';
+  path.setAttribute('d', '');
+  area.setAttribute('d', '');
+
+  // Retrieve history logs. Ensure we have at least 1 record
+  let history = state.history || [];
+  if (history.length === 0) {
+    // Seed history with current state to show a baseline point right away
+    history = [{ date: new Date().toISOString(), total: state.total }];
+    state.history = history;
+    saveToLocalStorage();
+  }
+
+  const paddingLeft = 40;
+  const paddingRight = 30;
+  const paddingTop = 20;
+  const paddingBottom = 30;
+  
+  const width = 500;
+  const height = 200;
+  
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  // Determine scaling bounds
+  const totals = history.map(h => h.total);
+  let maxVal = Math.max(...totals, 6000); // minimum scale ceiling of 6000 kg
+  let minVal = 0; // standard floor to show relative magnitude
+  
+  // Render horizontal grid lines and Y-axis marks
+  const gridLinesCount = 4;
+  for (let i = 0; i <= gridLinesCount; i++) {
+    const val = minVal + (maxVal - minVal) * (i / gridLinesCount);
+    const y = height - paddingBottom - (i / gridLinesCount) * chartHeight;
+    
+    // Draw line
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', paddingLeft.toString());
+    line.setAttribute('y1', y.toString());
+    line.setAttribute('x2', (width - paddingRight).toString());
+    line.setAttribute('y2', y.toString());
+    line.setAttribute('stroke', 'rgba(255,255,255,0.04)');
+    line.setAttribute('stroke-dasharray', '4 4');
+    gridContainer.appendChild(line);
+
+    // Draw label text
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', (paddingLeft - 8).toString());
+    text.setAttribute('y', (y + 4).toString());
+    text.setAttribute('fill', 'var(--text-muted)');
+    text.setAttribute('font-size', '9px');
+    text.setAttribute('text-anchor', 'end');
+    text.textContent = `${Math.round(val).toLocaleString()} kg`;
+    gridContainer.appendChild(text);
+  }
+
+  // Calculate points
+  const points = [];
+  const count = history.length;
+  
+  history.forEach((h, idx) => {
+    // distribute X coordinates evenly
+    const x = count > 1 
+      ? paddingLeft + (idx / (count - 1)) * chartWidth
+      : paddingLeft + chartWidth / 2;
+      
+    // scale Y value
+    const valPercent = (h.total - minVal) / (maxVal - minVal);
+    const y = height - paddingBottom - valPercent * chartHeight;
+    points.push({ x, y, total: h.total, date: new Date(h.date) });
+  });
+
+  // Generate path string (d)
+  let pathD = '';
+  let areaD = '';
+
+  if (points.length > 0) {
+    if (points.length === 1) {
+      // Just single point
+      const p = points[0];
+      pathD = `M ${p.x - 10} ${p.y} L ${p.x + 10} ${p.y}`;
+      areaD = `M ${p.x - 10} ${p.y} L ${p.x + 10} ${p.y} L ${p.x + 10} ${height - paddingBottom} L ${p.x - 10} ${height - paddingBottom} Z`;
+    } else {
+      // Multiple points
+      points.forEach((p, idx) => {
+        if (idx === 0) {
+          pathD = `M ${p.x} ${p.y}`;
+          areaD = `M ${p.x} ${height - paddingBottom} L ${p.x} ${p.y}`;
+        } else {
+          pathD += ` L ${p.x} ${p.y}`;
+          areaD += ` L ${p.x} ${p.y}`;
+        }
+      });
+      areaD += ` L ${points[points.length - 1].x} ${height - paddingBottom} Z`;
+    }
+
+    path.setAttribute('d', pathD);
+    area.setAttribute('d', areaD);
+
+    // Draw dots and tooltips
+    const tooltip = document.getElementById('trend-tooltip');
+    
+    points.forEach((p) => {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', p.x.toString());
+      circle.setAttribute('cy', p.y.toString());
+      circle.setAttribute('r', '5');
+      circle.setAttribute('fill', '#00e676');
+      circle.setAttribute('stroke', '#121824');
+      circle.setAttribute('stroke-width', '2');
+      circle.style.cursor = 'pointer';
+      circle.style.transition = 'r 0.1s ease';
+
+      // Tooltip interactive events
+      circle.addEventListener('mouseenter', () => {
+        circle.setAttribute('r', '7');
+        tooltip.classList.remove('hidden');
+        tooltip.innerHTML = `
+          <strong>${Math.round(p.total).toLocaleString()} kg CO2e</strong><br>
+          <span style="color: var(--text-secondary); font-size: 10px;">${p.date.toLocaleDateString()}</span>
+        `;
+        // Position tooltip relative to container width
+        tooltip.style.left = `${(p.x / width) * 100}%`;
+        tooltip.style.top = `${(p.y / height) * 100}%`;
+      });
+
+      circle.addEventListener('mouseleave', () => {
+        circle.setAttribute('r', '5');
+        tooltip.classList.add('hidden');
+      });
+
+      dotsContainer.appendChild(circle);
+    });
   }
 }
